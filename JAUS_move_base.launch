@@ -1,0 +1,10 @@
+<launch>
+  <node pkg="JAUS_move_base_simple" type="JAUS_move_base_simple.py" name="IGVC_move_base" output="screen">
+  <param name="max_speed"           value="1.5"/>
+  <param name="max_turn_speed"      value="0.2"/>
+  <param name="max_acceleration"    value="1.0"/>
+  <param name="max_turn_rate"       value="0.5"/>
+  <param name="distance_epsilon"    value="0.4"/>
+  </node>
+ </launch>
+
