@@ -1,0 +1,19 @@
+<package>
+  <description brief="JAUS_move_base_simple">
+
+     JAUS_move_base_simple
+
+  </description>
+  <author>Administrator</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/JAUS_move_base_simple</url>
+  <depend package="std_msgs"/>
+  <depend package="nav_msgs"/>
+  <depend package="rospy"/>
+  <depend package="roscpp"/>
+  <depend package="kdl"/>
+
+</package>
+
+
