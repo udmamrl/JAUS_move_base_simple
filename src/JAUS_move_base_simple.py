@@ -11,6 +11,7 @@ import roslib; roslib.load_manifest('JAUS_move_base_simple')
 import rospy
 import PyKDL
 import math
+import time
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Twist
 #from move_base_msgs.msg import MoveBaseAction  #include <move_base_msgs/MoveBaseAction.h>
@@ -38,14 +39,14 @@ class JAUS_move_base_simple(object):
     def __init__(self):
         rospy.init_node('JAUS_move_base_simple')
         # Parameters
-        self.max_speed          =rospy.get_param('~max_speed',1.5)
-        self.max_turn_speed     =rospy.get_param('~max_turn_speed',0.2) # m/s
+        self.max_speed                      =rospy.get_param('~max_speed',1.5)
+        self.max_speed_at_max_turn_rate     =rospy.get_param('~max_speed_at_max_turn_rate',0.2) # m/s
         self.max_acceleration   =rospy.get_param('~max_acceleration',1.0)
-        self.max_turn_rate      =rospy.get_param('~max_turn_rate',0.5)
         self.distance_epsilon   =rospy.get_param('~distance_epsilon',0.4)
         
         # Use degree for input then convert to radius
-        self.angle_epsilon    =rospy.get_param('~angle_epsilon',5) *math.pi/180.
+        self.max_turn_rate      =rospy.get_param('~max_turn_rate',0.5) *math.pi/180.
+        self.angle_error_treshold    =rospy.get_param('~angle_error_treshold',50) *math.pi/180.
         
         # Set up publishers/subscribers
         rospy.Subscriber('/odom', Odometry, self.HandleOdom)
@@ -91,44 +92,45 @@ class JAUS_move_base_simple(object):
         VelocityCommandPublisher.publish(velocityCommand)
 
     def move_base(self):
-       
         
         distance = math.sqrt(pow(self.Goal_x-self.x,2.0) + pow(self.Goal_y-self.y,2.0))
-        #self.theta = wrapToPI(self.theta)  
         dtheta = math.atan2(self.Goal_y-self.y,self.Goal_x-self.x)  
         theta_error= wrapToPI(dtheta-self.theta)
 
-
         self.turn_and_drive(distance,theta_error)
-        self.Omega=limits(self.max_turn_rate,-self.max_turn_rate,self.Omega)
 
-
-
-
-        print ('(Goal_x, Goal_y): ({0}, {1})' .format(self.Goal_x ,self.Goal_y)) 
-        print ('(robot_x, robot_y): ({0}, {1})' .format(self.x ,self.y)) 
-        print ('(dist, theta_error): ({0}, {1})' .format(distance,theta_error)) 
-        print ('(Speed, Omega): ({0} m/s, {1} degree/s)' .format(self.V_speed, self.Omega*180/math.pi)) 
-        #return (V_speed, Omega)
-        
+        print ('(Goal_x, Goal_y)   : ({0}    , {1})' .format(self.Goal_x ,self.Goal_y)) 
+        print ('(robot_x, robot_y) : ({0}    , {1})' .format(self.x ,self.y)) 
+        print ('(dist, theta_error): ({0} m  , {1} degree/s)' .format(distance    ,theta_error*180/math.pi)) 
+        print ('(Speed, Omega)     : ({0} m/s, {1} degree/s)' .format(self.V_speed, self.Omega*180/math.pi)) 
         
     def turn_and_drive(self,Dist2goal,Angle2goal):
-        if (Dist2goal<=self.distance_epsilon):
+        if (Dist2goal<=self.distance_epsilon): # if we are in the goal , stop the vehicle
             self.V_speed=0
             self.Omega=0
-        elif (abs(Angle2goal) > (self.angle_epsilon*10 )):
-            self.V_speed=self.max_turn_speed;
-            #self.Omega=self.Omega+0.01*self.max_turn_rate
-            if ((Angle2goal)>0) :
-                self.Omega=self.max_turn_rate;
-            else:
-                self.Omega=-self.max_turn_rate;
+            print ('case[1]') 
         else:
-            self.V_speed=self.get_vx(Dist2goal)
-            self.Omega=(Angle2goal/(self.angle_epsilon*10))*self.max_turn_rate;
-            #self.Omega=self.Omega+0.01*Angle2goal
-           
-        #return (V_speed, Omega)
+            # find the speed base on the angle_error
+            if(abs(Angle2goal) > (self.angle_error_treshold )): # if angle to goal is bigger then treshold, slow down vehicle
+                self.V_speed=self.max_speed_at_max_turn_rate; # in big turn, limit the driving speed
+                print ('case[2]')
+            else:
+                self.V_speed=self.get_vx(Dist2goal) # calculate the speed base on distance to goal
+                print ('case[3]') 
+            
+            # if angle error is close to 180 degree make sure it do max turn in one 
+            if (abs(Angle2goal) > math.pi*0.75 ): # if error is around +/- 180 degree , +/- pi , must stick to one side and keep turning
+                print ('case[4-0]') 
+                if (abs(self.Omega)!=self.max_turn_rate): # only update omega if is not in max turn rate
+                    self.Omega=(Angle2goal/(self.angle_error_treshold))*self.max_turn_rate # caliculate the turn rate
+                    self.Omega=limits(self.max_turn_rate,-self.max_turn_rate,self.Omega) # limit the Omega to max_turn_rate
+                    print ('case[4-1]') 
+                
+            else:
+                self.Omega=(Angle2goal/(self.angle_error_treshold))*self.max_turn_rate # caliculate the turn rate
+                self.Omega=limits(self.max_turn_rate,-self.max_turn_rate,self.Omega) # limit the Omega to max_turn_rate
+                print ('case[5]') 
+
     def get_vx(self,Dist2goal):
         # distance to slow down , S= -Vmax^2/a , a = - max_acc. 
         dist_slow=pow(self.max_speed,2.0)/self.max_acceleration
