@@ -39,14 +39,16 @@ class JAUS_move_base_simple(object):
     def __init__(self):
         rospy.init_node('JAUS_move_base_simple')
         # Parameters
-        self.max_speed                      =rospy.get_param('~max_speed',1.5)
+        self.max_speed                      =rospy.get_param("~max_speed",0.5)
         self.max_speed_at_max_turn_rate     =rospy.get_param('~max_speed_at_max_turn_rate',0.2) # m/s
         self.max_acceleration   =rospy.get_param('~max_acceleration',1.0)
         self.distance_epsilon   =rospy.get_param('~distance_epsilon',0.4)
         
         # Use degree for input then convert to radius
-        self.max_turn_rate      =rospy.get_param('~max_turn_rate',0.5) *math.pi/180.
-        self.angle_error_treshold    =rospy.get_param('~angle_error_treshold',50) *math.pi/180.
+        self.max_turn_rate        =rospy.get_param('~max_turn_rate',90       ) *math.pi/180.
+        self.angle_error_treshold =rospy.get_param('~angle_error_treshold',50) *math.pi/180.
+        
+        print self.max_speed,self.max_speed_at_max_turn_rate,self.max_acceleration,self.distance_epsilon,self.max_turn_rate,self.angle_error_treshold
         
         # Set up publishers/subscribers
         rospy.Subscriber('/odom', Odometry, self.HandleOdom)

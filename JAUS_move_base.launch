@@ -1,16 +1,16 @@
 <launch>
-  <node pkg="JAUS_move_base_simple" type="JAUS_move_base_simple.py" name="IGVC_move_base" output="screen">
-  <param name="max_speed"                       value="1.5"/>
-  <param name="max_speed_at_max_turn_rate"      value="0.5"/>
-  <param name="max_acceleration"    value="1.0"/>
-  <param name="distance_epsilon"    value="0.4"/>
+  <node pkg="JAUS_move_base_simple" type="JAUS_move_base_simple.py" name="IGVC_move_base" output="screen" >
+      <param name="max_speed"                       value="1.5"/>
+      <param name="max_speed_at_max_turn_rate"      value="0.5"/>
+      <param name="max_acceleration"    value="1.0"/>
+      <param name="distance_epsilon"    value="0.4"/>
 
-  <!-- max_turn_rate , unit degree/s -->
-  <param name="max_turn_rate"       value="90"/>
-  
-  <!-- angle_error_treshold , unit degree/s -->
-  <!-- If the angle_error is bigger then this, turn at max turn rate, use the speed at max_speed_at_max_turn_rate  -->
-  <param name="angle_error_treshold"    value="60"/>
+      <!-- max_turn_rate , unit degree/s -->
+      <param name="max_turn_rate"       value="90"/>
+      
+      <!-- angle_error_treshold , unit degree/s -->
+      <!-- If the angle_error is bigger then this, turn at max turn rate, use the speed at max_speed_at_max_turn_rate  -->
+      <param name="angle_error_treshold"    value="60"/>
   
   </node>
  </launch>
