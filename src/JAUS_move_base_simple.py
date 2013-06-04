@@ -3,7 +3,7 @@
 # Author: Yu-Ting Wu , Cheng-Lung Lee
 # Data: Jan/23/2013 
 # Abstract:
-# This code is not correct, but robot also can reach to object.
+# This is for JAUS of IGVC 2013.
 # Update 
 # Data: Mar/29/2013  fix move_base caculation with player's VFH+ calculation
    
