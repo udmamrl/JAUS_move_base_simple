@@ -12,6 +12,8 @@ import rospy
 import PyKDL
 import math
 import time
+
+from std_msgs.msg import Float32
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Twist
 #from move_base_msgs.msg import MoveBaseAction  #include <move_base_msgs/MoveBaseAction.h>
@@ -42,6 +44,8 @@ class JAUS_move_base_simple(object):
         self.max_speed                      =rospy.get_param("~max_speed",0.5)
         self.max_speed_at_max_turn_rate     =rospy.get_param('~max_speed_at_max_turn_rate',0.2) # m/s
         self.max_acceleration   =rospy.get_param('~max_acceleration',1.0)
+        self.min_acceleration   =rospy.get_param('~min_acceleration',1.0)
+        
         self.distance_epsilon   =rospy.get_param('~distance_epsilon',0.4)
         
         # Use degree for input then convert to radius
@@ -53,6 +57,7 @@ class JAUS_move_base_simple(object):
         # Set up publishers/subscribers
         rospy.Subscriber('/odom', Odometry, self.HandleOdom)
         rospy.Subscriber('/move_base_simple/goal', PoseStamped, self.HandlePose)
+        rospy.Subscriber('/move_base_simple/max_acceleration', Float32 , self.HandleAcceleration)
 
         # Initialize odometry message
         self.theta=0
@@ -64,13 +69,22 @@ class JAUS_move_base_simple(object):
         self.waypoint_enable=False
         self.V_speed=0
         self.Omega=0
-        
+
     def HandlePose(self,Pose):        
         self.Goal_x = Pose.pose.position.x
         self.Goal_y = Pose.pose.position.y
         self.waypoint_enable = True
         rospy.loginfo('Got New Goal:[ x:%s , y:%s ]' %(self.Goal_x,self.Goal_y))
         
+    def HandleAcceleration(self,Acc):
+    		#rosmsg show std_msgs/Float32
+				#float32 data
+        
+        # make sure the Acc.data with in range , max 10 m/s^2, self.min_acceleration (1 m/s^2)
+        self.max_acceleration=limits(10,self.min_acceleration,Acc.data)
+
+        rospy.loginfo('Got updated Acceleration:[ %s ]' %(self.max_acceleration))
+
     def HandleOdom(self,odom):
         o = odom.pose.pose.orientation
         cur_heading = PyKDL.Rotation.Quaternion(o.x,o.y,o.z,o.w).GetEulerZYX()
@@ -101,10 +115,11 @@ class JAUS_move_base_simple(object):
 
         self.turn_and_drive(distance,theta_error)
 
-        print ('(Goal_x, Goal_y)   : ({0}    , {1})' .format(self.Goal_x ,self.Goal_y)) 
+        print ('(Goal_x , Goal_y)  : ({0}    , {1})' .format(self.Goal_x ,self.Goal_y)) 
         print ('(robot_x, robot_y) : ({0}    , {1})' .format(self.x ,self.y)) 
         print ('(dist, theta_error): ({0} m  , {1} degree/s)' .format(distance    ,theta_error*180/math.pi)) 
         print ('(Speed, Omega)     : ({0} m/s, {1} degree/s)' .format(self.V_speed, self.Omega*180/math.pi)) 
+        print (' Acceleration      : ({0} m/s^2 )' .format(self.max_acceleration))
         
     def turn_and_drive(self,Dist2goal,Angle2goal):
         if (Dist2goal<=self.distance_epsilon): # if we are in the goal , stop the vehicle
@@ -120,7 +135,7 @@ class JAUS_move_base_simple(object):
                 self.V_speed=self.get_vx(Dist2goal) # calculate the speed base on distance to goal
                 print ('case[3]') 
             
-            # if angle error is close to 180 degree make sure it do max turn in one 
+            # if angle error is close to 180 degree make sure it do max turn in one side only
             if (abs(Angle2goal) > math.pi*0.75 ): # if error is around +/- 180 degree , +/- pi , must stick to one side and keep turning
                 print ('case[4-0]') 
                 if (abs(self.Omega)!=self.max_turn_rate): # only update omega if is not in max turn rate
