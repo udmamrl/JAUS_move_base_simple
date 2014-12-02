@@ -7,7 +7,7 @@
 # Update 
 # Data: Mar/29/2013  fix move_base caculation with player's VFH+ calculation
    
-import roslib; roslib.load_manifest('JAUS_move_base_simple')
+#import roslib; roslib.load_manifest('JAUS_move_base_simple')
 import rospy
 import PyKDL
 import math
